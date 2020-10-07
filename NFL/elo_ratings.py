@@ -49,10 +49,10 @@ class elo_ratings(object):
         multiplier = np.log(winner_point_diff+1) * (2.2/((winner_elo_diff*.001)+2.2))
         return multiplier
 
-    #assuming 65 elo points is one point in the NFL
+    #assuming 25 elo points is one point in the NFL
     def point_spread(self, eloA, eloB):
         diff = eloA - eloB
-        spread = round(diff/65,2)
+        spread = round(diff/25,2)
         return spread
     
 
