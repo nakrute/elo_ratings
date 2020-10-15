@@ -72,8 +72,10 @@ class nfl_data(object):
         opponent = schedule.loc[team_abv, week]
         if '@' in str(opponent):
             home_away = "A"
-        else:
+        if '@' not in str(opponent):
             home_away =  "H"
+        else:
+            home_away = "Bye"
         return home_away
 
     #get the opponent for the week
