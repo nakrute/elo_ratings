@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
-import os
+from random import random 
 
 #K is the standard change per game
 K = 20
 home_field_advantage = 55
 injuries = 10
 win_streak = 10
+standard_deviation = 13
 team_abv = {"Cardinals" : "ARI",
             "Falcons" : "ATL",
             "Ravens" : "BAL",
@@ -38,7 +39,8 @@ team_abv = {"Cardinals" : "ARI",
             "Seahawks" : "SEA",
             "Buccaneers" : "TB",
             "Titans" : "TEN",
-            "Washington" : "WSH"}
+            "Washington" : "WSH",
+            "Bye" : "BYE"}
 
 class nfl_data(object):
     def read_and_clean(self, file):
@@ -59,12 +61,18 @@ class nfl_data(object):
 
     #get team abreviation
     def get_abv(self, team):
-        return team_abv[team]
+        if team == "BYE":
+            return "Bye"
+        else:
+            return team_abv[team]
 
     #get team from abreviation
     def get_team_abv(self, abv):
         inv_team_abv = {v: k for k, v in team_abv.items()}
-        return inv_team_abv[abv.strip('@')]
+        if abv.strip('@') == "BYE":
+            return "Bye"
+        else:
+            return inv_team_abv[abv.strip('@')]
 
     #get home or away
     def get_home_away(self, team, week):
@@ -72,11 +80,12 @@ class nfl_data(object):
         opponent = schedule.loc[team_abv, week]
         if '@' in str(opponent):
             home_away = "A"
-        if '@' not in str(opponent):
+        elif '@' not in str(opponent):
             home_away =  "H"
-        else:
-            home_away = "Bye"
+        elif opponent == "BYE":
+            home_away = "Bye"    
         return home_away
+ 
 
     #get the opponent for the week
     def get_opponent(self, team, week):
@@ -132,22 +141,94 @@ class elo_ratings(nfl_data):
         else:
             elo = elo
 
+    #print some game details such as who's playing and the spread as well as percent chance
+    def print_game_details(self, week, team):
+        home_away = self.get_home_away(team, week)
+        opp = elo.get_opponent(team, week)
+        if opp == "Bye":
+            print("The", team, "are on a bye this week.\n")
+        else:
+            elo_team = elo.get_elo(team, week)
+            elo_opp = elo.get_elo(opp, week)
+            teams_elo = {elo_team : team,
+                         elo_opp : opp}
+            better_team = max(elo_team, elo_opp)
+            worse_team = min(elo_team, elo_opp)
+            odds = self.weight_calc(better_team, worse_team)
+            odds_percent = odds * 100
+            spread = self.point_spread(better_team, worse_team)
+            if team == "Washington" and teams_elo[better_team] == "Washington":
+                print(team, "is playing the", opp, "in", week, "and are", home_away)
+                print(teams_elo[better_team], "has a", odds_percent,
+                        "% chance of winning, with a spread of", spread,"\n")
+            elif team == "Washington" and teams_elo[better_team] != "Washington":
+                print(team, "is playing the", opp, "in", week, "and are", home_away)
+                print("The", teams_elo[better_team], "have a", odds_percent,
+                        "% chance of winning, with a spread of", spread,"\n")
+            else:
+                print("The", team, "are playing the", opp, "in", week, "and are", home_away)
+                print("The", teams_elo[better_team], "have a", odds_percent,
+                        "% chance of winning, with a spread of", spread,"\n")
+                    
+#simulator for each week
+class simulator(elo_ratings):
+    def run_week(self, week, simulate=True):
+        teams = data.index
+        for team in teams:
+            self.print_game_details(week, team)
+
+    def simulate_games(self, team, week, runs=100000):
+        home_away = self.get_home_away(team, week)
+        opp = elo.get_opponent(team, week)
+        if opp == "Bye":
+            print("The", team, "are on a bye this week.\n")
+        else:
+            elo_team = elo.get_elo(team, week)
+            elo_opp = elo.get_elo(opp, week)
+            odds = self.weight_calc(elo_team, elo_opp)
+            wins = 0
+            losses = 0
+            for i in range(runs):
+                result = random()
+                if result <= odds:
+                    wins += 1
+                else:
+                    losses += 1
+            chance = (wins/runs)*100
+            if team == "Washington":
+                print("Simulating for", team, "we get a winning chance of", chance,"%")
+            else:
+                print("Simulating for the", team, "we get a winning chance of", chance,"%")
+
+    def get_predicted_score(self, team, week, runs = 100):
+        opp = elo.get_opponent(team, week)
+        if opp == "Bye":
+            print("The", team, "are on a bye this week.\n")
+        else:
+            elo_team = elo.get_elo(team, week)
+            elo_opp = elo.get_elo(opp, week)
+            spread = self.point_spread(elo_team, elo_opp)
+            score = np.random.normal(spread, standard_deviation, runs)
+            print(score)
+            print(np.mean(score))
+            
 #create object
-elo = elo_ratings()
+elo = simulator()
 #set up global data
 elo.read_and_clean("D:/Elo_Ratings/elo_data.csv")
 elo.read_schedule("D:/Elo_Ratings/schedule.csv")
+'''
 #testing code here
-#quickly automate one search
-week = "Week 2"
+week = "Week 6"
 team = "Eagles"
-home_away = elo.get_home_away(team, week)
 opp = elo.get_opponent(team, week)
 elo_team = elo.get_elo(team, week)
 elo_opp = elo.get_elo(opp, week)
-print("The", team, "week 2 are playing the", opp)
-print("The", team, "are", home_away, "this week!")
-print("The", team, "have an elo of", elo_team)
-print("The" ,opp, "have an elo of", elo_opp)
-spread = elo.point_spread(max(elo_team, elo_opp), min(elo_team, elo_opp))
-print("We are predicting a spread of -", spread, "in favor of the higher elo team")
+print(elo.change_elo(elo_team, elo_opp, "A", 20, 19))
+elo.print_game_details(week, team)
+'''
+#elo.run_week("Week 6")
+#elo.simulate_games("Ravens", "Week 6")
+print(elo.get_predicted_score("Ravens", "Week 6"))
+
+
