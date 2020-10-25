@@ -230,12 +230,13 @@ class elo_ratings(nfl_data):
 
     #make adjustments #TODO
     #this part is important since it adjusts the teams to see if they have a better chance of winning or not
-    def adjustments(self, elo, home):
-        if home_away == "H":
-            elo += home_field_advantage
+    def adjustments(self, elo_score, home):
+        if home == "H":
+            elo_score += home_field_advantage
         else:
-            elo = elo
-
+            elo_score = elo_score
+        return elo_score
+    
     #print some game details such as who's playing and the spread as well as percent chance
     def print_game_details(self, week, team):
         home_away = self.get_home_away(team, week)
@@ -272,13 +273,11 @@ class elo_ratings(nfl_data):
         return (odds-win_loss)**2
 
        #predict the scores for the team
-    def get_predicted_score(self, team, week, runs = 1000, plot=False):
+    def get_predicted_score(self, team, week, elo_team, elo_opp, plot=False, runs = 10000):
         opp = elo.get_opponent(team, week)
         if opp == "Bye":
             print("The", team, "are on a bye this week.")
         elif opp != "Bye":
-            elo_team = elo.get_elo(team, week)
-            elo_opp = elo.get_elo(opp, week)
             spread = self.point_spread(elo_team, elo_opp)
             if spread <= 0:
                 spread = 0
@@ -338,13 +337,16 @@ class simulator(elo_ratings):
                 self.set_predicted_score(team, week, predicted_score)
 
     #run the game and write the predicted results into the sheet
-    def get_game_and_predict_results(self, team, week, write=False):
+    def get_game_and_predict_results(self, team, week, write=False, adjustments=False):
         home_away = self.get_home_away(team, week)
         opp = elo.get_opponent(team, week)
         elo_team = elo.get_elo(team, week)
         elo_opp = elo.get_elo(opp, week)
-        predicted_score_team = self.get_predicted_score(team, week)
-        predicted_score_opp = self.get_predicted_score(opp, week)
+        if adjustments == True:
+            elo_team = self.adjustments(elo_team, home_away)
+            elo_opp = self.adjustments(elo_opp, home_away)
+        predicted_score_team = self.get_predicted_score(team, week, elo_team, elo_opp)
+        predicted_score_opp = self.get_predicted_score(opp, week, elo_team, elo_opp)
         if predicted_score_team > predicted_score_opp:
             winner = "A"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
@@ -390,7 +392,8 @@ class simulator(elo_ratings):
                 print(week)
                 self.simulate_week_and_write_to_the_data(week, write=True)
             else:
-                print("Skipping column", week)
+                #print("Skipping column", week)
+                pass
 
             
 #create object
