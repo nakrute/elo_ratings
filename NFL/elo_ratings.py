@@ -41,6 +41,7 @@ team_abv = {"Cardinals" : "ARI",
             "Titans" : "TEN",
             "Washington" : "WSH",
             "Bye" : "BYE"}
+
 #create division groupings:
 divisions_dict = {"NFC_East" : ["Eagles", "Giants", "Cowboys", "Washington"],
                   "NFC North" : ["Bears","Packers","Lions","Vikings"],
@@ -50,38 +51,40 @@ divisions_dict = {"NFC_East" : ["Eagles", "Giants", "Cowboys", "Washington"],
                   "AFC North" : ["Steelers","Ravens","Browns","Bengals"],
                   "AFC South" : ["Titans","Colts","Texans","Jaguars"],
                   "AFC West" : ["Chiefs","Raiders","Broncos","Chargers"]}
+
 records = {"Cardinals" : [0,0,0],
-            "Falcons" : [0,0,0],
-            "Ravens" : [0,0,0],
-            "Bills" : [0,0,0],
-            "Panthers" : [0,0,0],
-            "Bears" : [0,0,0],
-            "Bengals" : [0,0,0],
-            "Browns" : [0,0,0],
-            "Cowboys" : [0,0,0],
-            "Broncos" : [0,0,0],
-            "Lions" : [0,0,0],
-            "Packers" : [0,0,0],
-            "Texans" : [0,0,0],
-            "Colts" : [0,0,0],
-            "Jaguars" : [0,0,0],
-            "Chiefs" : [0,0,0],
-            "Raiders" : [0,0,0],
-            "Rams" : [0,0,0],
-            "Chargers" : [0,0,0],
-            "Dolphins" : [0,0,0],
-            "Vikings" : [0,0,0],
-            "Patriots" : [0,0,0],
-            "Saints" : [0,0,0],
-            "Giants" : [0,0,0],
-            "Jets" : [0,0,0],
-            "Eagles" : [0,0,0],
-            "Steelers" : [0,0,0],
-            "49ers" : [0,0,0],
-            "Seahawks" : [0,0,0],
-            "Buccaneers" : [0,0,0],
-            "Titans" : [0,0,0],
-            "Washington" : [0,0,0]}
+           "Falcons" : [0,0,0],
+           "Ravens" : [0,0,0],
+           "Bills" : [0,0,0],
+           "Panthers" : [0,0,0],
+           "Bears" : [0,0,0],
+           "Bengals" : [0,0,0],
+           "Browns" : [0,0,0],
+           "Cowboys" : [0,0,0],
+           "Broncos" : [0,0,0],
+           "Lions" : [0,0,0],
+           "Packers" : [0,0,0],
+           "Texans" : [0,0,0],
+           "Colts" : [0,0,0],
+           "Jaguars" : [0,0,0],
+           "Chiefs" : [0,0,0],
+           "Raiders" : [0,0,0],
+           "Rams" : [0,0,0],
+           "Chargers" : [0,0,0],
+           "Dolphins" : [0,0,0],
+           "Vikings" : [0,0,0],
+           "Patriots" : [0,0,0],
+           "Saints" : [0,0,0],
+           "Giants" : [0,0,0],
+           "Jets" : [0,0,0],
+           "Eagles" : [0,0,0],
+           "Steelers" : [0,0,0],
+           "49ers" : [0,0,0],
+           "Seahawks" : [0,0,0],
+           "Buccaneers" : [0,0,0],
+           "Titans" : [0,0,0],
+           "Washington" : [0,0,0]}
+
 class nfl_data(object):
     def read_and_clean(self, file):
         global data
@@ -107,12 +110,14 @@ class nfl_data(object):
         except Exception:
             pass
 
-
     #set the elo for a team
     def set_elo(self, team, week, elo):
-        column_idx = data.columns.get_loc(week) + 1
-        next_week = data.columns.values[column_idx]
-        data.loc[team, next_week] = elo        
+        if week != "Week 17":
+            column_idx = data.columns.get_loc(week) + 1
+            next_week = data.columns.values[column_idx]
+            data.loc[team, next_week] = elo
+        else:
+            pass
 
     #get team abreviation
     def get_abv(self, team):
@@ -186,7 +191,12 @@ class nfl_data(object):
 
     #function to give a win loss or tie to a team
     def set_record(self, team, result):
-        pass #come back to this, need to not double count a week
+        if result == 1:
+            records[team][0] += 1
+        elif result == -1:
+            records[team][1] += 1
+        else:
+            records[team][2] += 1
         
 class elo_ratings(nfl_data):
     #calculate the percentage chance a team will win
@@ -273,7 +283,7 @@ class elo_ratings(nfl_data):
         return (odds-win_loss)**2
 
        #predict the scores for the team
-    def get_predicted_score(self, team, week, elo_team, elo_opp, plot=False, runs = 10000):
+    def get_predicted_score(self, team, week, elo_team = 0, elo_opp = 0, plot=False, runs = 10000):
         opp = elo.get_opponent(team, week)
         if opp == "Bye":
             print("The", team, "are on a bye this week.")
@@ -299,6 +309,7 @@ class simulator(elo_ratings):
         for team in teams:
             self.print_game_details(week, team)
 
+    #this gets the percent chance of a team winning based on scoring
     def simulate_games(self, team, week, runs=100000):
         home_away = self.get_home_away(team, week)
         opp = elo.get_opponent(team, week)
@@ -338,6 +349,7 @@ class simulator(elo_ratings):
 
     #run the game and write the predicted results into the sheet
     def get_game_and_predict_results(self, team, week, write=False, adjustments=False):
+        counted_teams = []
         home_away = self.get_home_away(team, week)
         opp = elo.get_opponent(team, week)
         elo_team = elo.get_elo(team, week)
@@ -352,16 +364,19 @@ class simulator(elo_ratings):
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
             changed_elo_home = new_elos[0]
             changed_elo_away = new_elos[1]
+            return [team, opp, 1]
         elif predicted_score_team < predicted_score_opp:
             winner = "B"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
             changed_elo_home = new_elos[1]
             changed_elo_away = new_elos[0]
+            return [team, opp, -1]
         elif predicted_score_team == predicted_score_opp:
             winner = "A"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
             changed_elo_home = new_elos[0]
             changed_elo_away = new_elos[1]
+            return [team, opp, 0]
         #debug line
         #print(team, opp, elo_team, elo_opp, predicted_score_team, predicted_score_opp, changed_elo_home, changed_elo_away)
         if write == True:
@@ -372,28 +387,45 @@ class simulator(elo_ratings):
                 self.set_predicted_score(opp, week, predicted_score_opp)
             if week == "Week 17":
                 self.set_predicted_score(team, week, predicted_score_team)
-                self.set_predicted_score(opp, week, predicted_score_opp)
+                self.set_predicted_score(opp, week, predicted_score_opp) 
 
     #simulate the full week of scores and write to the files
-    def simulate_week_and_write_to_the_data(self, week, write=False):
+    def simulate_week_and_write_to_the_data(self, week, adjustments=False, write=False):
         teams = data.index
+        counted_teams = []
         for team in data.index:
             try:
-                self.get_game_and_predict_results(team, week, write)
+                result = self.get_game_and_predict_results(team, week, adjustments, write)
+                if result[0] not in counted_teams and result[1] not in counted_teams:
+                    if result[2] == 1:
+                        self.set_record(team, 1)
+                        self.set_record(opp, -1)
+                        counted_teams.append(result[0])
+                        counted_teams.append(result[1])
+                    elif result[2] == -1:
+                        self.set_record(team, -1)
+                        self.set_record(opp, 1)
+                        counted_teams.append(result[0])
+                        counted_teams.append(result[1])
+                    elif result [2] == 0:
+                        self.set_record(team, 0)
+                        self.set_record(opp, 0)
+                        counted_teams.append(result[0])
+                        counted_teams.append(result[1])
                 self.set_average()
             except Exception:
                 #print("Failed for", team, "carrying elo over")
                 self.set_elo(team, week, self.get_elo(team, week))
 
-    def run_season(self):
+    def run_season(self, adjustments=False, write=False):
         weeks = scores.columns
         for week in weeks:
             if week != "Average":
                 print(week)
-                self.simulate_week_and_write_to_the_data(week, write=True)
+                self.simulate_week_and_write_to_the_data(week, adjustments=adjustments, write=write)
             else:
                 #print("Skipping column", week)
-                pass
+                continue                
 
             
 #create object
@@ -404,9 +436,7 @@ elo.read_schedule("D:/Elo_Ratings/schedule.csv")
 elo.read_scores("D:/Elo_Ratings/scores.csv")
 elo.set_average()
 #testing code here
-elo.run_season()
+elo.run_season(adjustments=True, write=True)
 elo.write_file(data,"test_elos.csv")
 elo.write_file(scores,"test_scores.csv")
-                                       
-
-
+print(records)
