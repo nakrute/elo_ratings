@@ -364,19 +364,19 @@ class simulator(elo_ratings):
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
             changed_elo_home = new_elos[0]
             changed_elo_away = new_elos[1]
-            return [team, opp, 1]
+            result = [team, opp, 1]
         elif predicted_score_team < predicted_score_opp:
             winner = "B"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
             changed_elo_home = new_elos[1]
             changed_elo_away = new_elos[0]
-            return [team, opp, -1]
+            result = [team, opp, -1]
         elif predicted_score_team == predicted_score_opp:
             winner = "A"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
             changed_elo_home = new_elos[0]
             changed_elo_away = new_elos[1]
-            return [team, opp, 0]
+            result = [team, opp, 0]
         #debug line
         #print(team, opp, elo_team, elo_opp, predicted_score_team, predicted_score_opp, changed_elo_home, changed_elo_away)
         if write == True:
@@ -387,15 +387,17 @@ class simulator(elo_ratings):
                 self.set_predicted_score(opp, week, predicted_score_opp)
             if week == "Week 17":
                 self.set_predicted_score(team, week, predicted_score_team)
-                self.set_predicted_score(opp, week, predicted_score_opp) 
+                self.set_predicted_score(opp, week, predicted_score_opp)
+        return result
 
     #simulate the full week of scores and write to the files
     def simulate_week_and_write_to_the_data(self, week, adjustments=False, write=False):
         teams = data.index
         counted_teams = []
         for team in data.index:
+            opp = self.get_opponent(team, week)
             try:
-                result = self.get_game_and_predict_results(team, week, adjustments, write)
+                result = self.get_game_and_predict_results(team, week, adjustments=adjustments, write=write)
                 if result[0] not in counted_teams and result[1] not in counted_teams:
                     if result[2] == 1:
                         self.set_record(team, 1)
@@ -414,7 +416,7 @@ class simulator(elo_ratings):
                         counted_teams.append(result[1])
                 self.set_average()
             except Exception:
-                #print("Failed for", team, "carrying elo over")
+                print("Failed for", team, "carrying elo over")
                 self.set_elo(team, week, self.get_elo(team, week))
 
     def run_season(self, adjustments=False, write=False):
@@ -440,3 +442,14 @@ elo.run_season(adjustments=True, write=True)
 elo.write_file(data,"test_elos.csv")
 elo.write_file(scores,"test_scores.csv")
 print(records)
+
+#get scores of a specific week
+#print(elo.get_game_and_predict_results("Patriots", "Week 9"))
+#print(elo.get_game_and_predict_results("Jets", "Week 9"))
+#print(elo.get_opponent("Patriots", "Week 9"))
+
+#elo_win = elo.get_elo("Falcons", "Week 9")
+#elo_loss = elo.get_elo("Broncos", "Week 9")
+#print(elo.change_elo(elo_win, elo_loss, "A", 34, 27))
+
+#elo.simulate_week_and_write_to_the_data("Week 2")
