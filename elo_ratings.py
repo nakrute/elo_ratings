@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from random import random
-
+#tresting
 #K is the standard change per game
 K = 20
 home_field_advantage = 55
