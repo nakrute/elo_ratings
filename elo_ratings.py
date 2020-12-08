@@ -435,9 +435,9 @@ class simulator(elo_ratings):
 #create object
 elo = simulator()
 #set up global data
-elo.read_and_clean("D:/Elo_Ratings/elo_data.csv")
-elo.read_schedule("D:/Elo_Ratings/schedule.csv")
-elo.read_scores("D:/Elo_Ratings/scores.csv")
+elo.read_and_clean("D:/Elo_Ratings/NFL/elo_data.csv")
+elo.read_schedule("D:/Elo_Ratings/NFL/schedule.csv")
+elo.read_scores("D:/Elo_Ratings/NFL/scores.csv")
 elo.set_average()
 #testing code here
 #elo.run_season(adjustments=True, write=True)
