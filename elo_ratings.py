@@ -296,7 +296,7 @@ class elo_ratings(nfl_data):
             score = np.random.normal(spread, standard_deviation, runs)
             avg = self.get_average_score(team)
             predicted_score = avg + score
-            predicted_score = int(round(np.median(predicted_score),0))
+            predicted_score = int(round(np.mean(predicted_score),0))
             if plot:
                 _ = plt.hist(score)
                 plt.show()
@@ -358,7 +358,7 @@ class simulator(elo_ratings):
             elo_team = self.adjustments(elo_team, home_away)
             elo_opp = self.adjustments(elo_opp, home_away)
         predicted_score_team = self.get_predicted_score(team, week, elo_team, elo_opp)
-        predicted_score_opp = self.get_predicted_score(opp, week, elo_team, elo_opp)
+        predicted_score_opp = self.get_predicted_score(opp, week, elo_opp, elo_team)
         print(predicted_score_team)
         print(predicted_score_opp)
         if predicted_score_team > predicted_score_opp:
@@ -446,12 +446,11 @@ elo.set_average()
 #print(records)
 
 #get scores of a specific week
-#print(elo.get_game_and_predict_results("Washington", "Week 12"))
-#print(elo.get_game_and_predict_results("Dallas", "Week 12"))
-#print(elo.get_opponent("Dallas", "Week 12"))
+print(elo.get_game_and_predict_results("Ravens", "Week 13"))
+#print(elo.get_game_and_predict_results("Cowboys", "Week 13"))
 
-elo_win = elo.get_elo("Washington", "Week 13")
-elo_loss = elo.get_elo("Steelers", "Week 13")
-print(elo.change_elo(elo_win, elo_loss, "A", 23, 17))
+#elo_win = elo.get_elo("Washington", "Week 13")
+#elo_loss = elo.get_elo("Steelers", "Week 13")
+#print(elo.change_elo(elo_win, elo_loss, "A", 23, 17))
 
 #elo.simulate_week_and_write_to_the_data("Week 2")
