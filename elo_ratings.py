@@ -303,7 +303,8 @@ class EloRatings(NflData):
             score = np.random.normal(spread, standard_deviation, runs)
             avg = self.get_average_score(team)
             predicted_score = avg + score
-            predicted_score = int(round(np.mean(predicted_score), 0))
+            # predicted_score = int(round(np.mean(predicted_score), 0))
+            predicted_score = round(np.mean(predicted_score), 0)
         return predicted_score
 
 
@@ -448,10 +449,10 @@ elo.read_schedule("D:/Elo_Ratings/schedule.csv")
 elo.read_scores("D:/Elo_Ratings/scores.csv")
 elo.set_average()
 # testing code here
-# elo.run_season(adjustments=True, write=True)
+elo.run_season(adjustments=True, write=True)
 # elo.write_file(data,"test_elos.csv")
 # elo.write_file(scores,"test_scores.csv")
-# print(records)
+print(records)
 
 # get scores of a specific week
 # print(elo.get_game_and_predict_results("Ravens", "Week 13"))
