@@ -304,7 +304,7 @@ class EloRatings(NflData):
             avg = self.get_average_score(team)
             predicted_score = avg + score
             # predicted_score = int(round(np.mean(predicted_score), 0))
-            predicted_score = round(np.mean(predicted_score), 0)
+            predicted_score = round(np.mean(predicted_score), 2)
         return predicted_score
 
 
@@ -438,7 +438,14 @@ class Simulator(EloRatings):
                 self.simulate_week_and_write_to_the_data(week, adjustments=adjustments, write=write)
             else:
                 # print("Skipping column", week)
-                continue                
+                continue
+
+    def final_standings(self, records):
+        for x in records:
+            total_score = 0
+            total_score += records[x][0]
+            total_score += (records[x][2]/2)
+            print(x, total_score)
 
             
 # create object
@@ -453,13 +460,14 @@ elo.run_season(adjustments=True, write=True)
 # elo.write_file(data,"test_elos.csv")
 # elo.write_file(scores,"test_scores.csv")
 print(records)
+elo.final_standings(records)
 
 # get scores of a specific week
-# print(elo.get_game_and_predict_results("Ravens", "Week 13"))
-# print(elo.get_game_and_predict_results("Cowboys", "Week 13"))
+# print(elo.get_game_and_predict_results("Rams", "Week 15"))
+# print(elo.get_game_and_predict_results("Chargers", "Week 15"))
 
-# elo_win = elo.get_elo("Bills", "Week 13")
-# elo_loss = elo.get_elo("49ers", "Week 13")
-# print(elo.change_elo(elo_win, elo_loss, "A", 34, 24))
+# elo_win = elo.get_elo("Ravens", "Week 14")
+# elo_loss = elo.get_elo("Browns", "Week 14")
+# print(elo.change_elo(elo_win, elo_loss, "A", 47, 42))
 
 # elo.simulate_week_and_write_to_the_data("Week 2")
