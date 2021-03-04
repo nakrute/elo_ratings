@@ -42,6 +42,7 @@ team_abv = {"Hawks": "ATL",
             "Wizards": "WAS",
             "Bye": "BYE"}
 
+
 # create division groupings:
 divisions_dict = {"Eastern Conference": ["76ers", "Nets", "Bucks", "Celtics", "Raptors",
                                          "Knicks", "Heat", "Hornets", "Pacers", "Bulls",
