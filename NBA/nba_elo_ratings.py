@@ -183,8 +183,6 @@ class NbaData(object):
             records[team][0] += 1
         elif result == -1:
             records[team][1] += 1
-        else:
-            records[team][2] += 1
 
 
 class EloRatings(NbaData):
@@ -342,12 +340,6 @@ class Simulator(EloRatings):
             changed_elo_home = new_elos[1]
             changed_elo_away = new_elos[0]
             result = [team, opp, -1]
-        elif predicted_score_team == predicted_score_opp:
-            winner = "A"
-            new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
-            changed_elo_home = new_elos[0]
-            changed_elo_away = new_elos[1]
-            result = [team, opp, 0]
         # debug line
         # print(team, opp, elo_team, elo_opp, predicted_score_team, predicted_score_opp,
         #       changed_elo_home, changed_elo_away)
@@ -379,11 +371,6 @@ class Simulator(EloRatings):
                     elif result[2] == -1:
                         self.set_record(team, -1)
                         self.set_record(opp, 1)
-                        counted_teams.append(result[0])
-                        counted_teams.append(result[1])
-                    elif result[2] == 0:
-                        self.set_record(team, 0)
-                        self.set_record(opp, 0)
                         counted_teams.append(result[0])
                         counted_teams.append(result[1])
                 self.set_average()
