@@ -3,10 +3,11 @@ import pandas as pd
 from random import random
 
 # K is the standard change per game
-K = 20  # historical change from nba based of 538's data
-home_field_advantage = 240/3.5
-injuries = 10
-win _streak = 10
+K = 20.0  # historical change from nba based of 538's data
+home_field_advantage = 240.0/3.5
+injuries = 10.0
+rest = 20.0  # need to figure this out since players rest in NBA compared to NFL
+win_streak = 10
 # https://www.theonlycolors.com/2020/4/27/21226073/the-variance-of-college-basketball-how-big-is-it-and-where-does-it-come-from
 # not sure if this is good enough, but will read more into it later
 standard_deviation = 10
@@ -39,8 +40,7 @@ team_abv = {"Hawks": "ATL",
             "Spurs": "SAS",
             "Raptors": "TOR",
             "Jazz": "UTA",
-            "Wizards": "WAS",
-            "Bye": "BYE"}
+            "Wizards": "WAS"}
 
 
 # create division groupings:
@@ -84,7 +84,7 @@ records = {"Hawks": [0, 0],
            "Wizards": [0, 0]}
 
 
-class NflData(object):
+class NbaData(object):
     def read_and_clean(self, file):
         global data
         data = pd.read_csv(file)
@@ -102,74 +102,63 @@ class NflData(object):
         scores = scores.set_index("Teams")
 
     # return the elo we are storing for now
-    def get_elo(self, team, week):
+    def get_elo(self, team, game):
         try:
-            elo = data.loc[team, week]
-            return elo
+            elo_val = data.loc[team, game]
+            return elo_val
         except Exception:
             pass
 
     # set the elo for a team
-    def set_elo(self, team, week, elo_assigned):
-        if week != "Week 17":
-            column_idx = data.columns.get_loc(week) + 1
-            next_week = data.columns.values[column_idx]
-            data.loc[team, next_week] = elo_assigned
+    def set_elo(self, team, game, elo_assigned):
+        if game != "Game 72":
+            column_idx = data.columns.get_loc(game) + 1
+            next_game = data.columns.values[column_idx]
+            data.loc[team, next_game] = elo_assigned
         else:
             pass
 
     # get team abbreviation
     def get_abv(self, team):
-        if team == "BYE":
-            return "Bye"
-        else:
-            return team_abv[team]
+        return team_abv[team]
 
     # get team from abbreviation
     def get_team_abv(self, abv):
         inv_team_abv = {v: k for k, v in team_abv.items()}
-        if abv.strip('@') == "BYE":
-            return "Bye"
-        else:
-            return inv_team_abv[abv.strip('@')]
+        return inv_team_abv[abv.strip('@')]
 
     # get home or away
-    def get_home_away(self, team, week):
+    def get_home_away(self, team, game):
         team_abv = self.get_abv(team)
         home_away = ''
-        opponent = schedule.loc[team_abv, week]
+        opponent = schedule.loc[team_abv, game]
         if '@' in str(opponent):
             home_away = "A"
         elif '@' not in str(opponent):
             home_away = "H"
-        elif opponent == "BYE":
-            home_away = "Bye"
         return home_away
 
-    # get the opponent for the week
-    def get_opponent(self, team, week):
+    # get the opponent for the game
+    def get_opponent(self, team, game):
         team_abv = self.get_abv(team)
-        if team_abv == "BYE":
-            pass
-        else:
-            opponent = schedule.loc[team_abv, week]
-            opponent = self.get_team_abv(opponent)
-            return opponent
+        opponent = schedule.loc[team_abv, game]
+        opponent = self.get_team_abv(opponent)
+        return opponent
 
     # get the average score of the team
     def get_average_score(self, team):
         avg_score = scores.loc[team, "Average"]
         return avg_score
 
-    # set the predicted scores for the week
-    def set_predicted_score(self, team, week, score):
-        column_idx = scores.columns.get_loc(week)
-        next_week = scores.columns.values[column_idx]
-        scores.loc[team, next_week] = score
+    # set the predicted scores for the game
+    def set_predicted_score(self, team, game, score):
+        column_idx = scores.columns.get_loc(game)
+        next_game = scores.columns.values[column_idx]
+        scores.loc[team, next_game] = score
 
-    # get the score of a team for a specific week
-    def get_score(self, team, week):
-        score = scores.loc[team, week]
+    # get the score of a team for a specific game
+    def get_score(self, team, game):
+        score = scores.loc[team, game]
         return score
 
     # function to write the file
@@ -198,7 +187,7 @@ class NflData(object):
             records[team][2] += 1
 
 
-class EloRatings(NflData):
+class EloRatings(NbaData):
     # calculate the percentage chance a team will win
     def weight_calc(self, elo_a, elo_b):
         diff = elo_a - elo_b
@@ -252,23 +241,20 @@ class EloRatings(NflData):
         return elo_score
 
     # print some game details such as who's playing and the spread as well as percent chance
-    def print_game_details(self, week, team):
-        home_away = self.get_home_away(team, week)
-        opp = elo.get_opponent(team, week)
-        if opp == "Bye":
-            print("The", team, "are on a bye this week.\n")
-        else:
-            elo_team = elo.get_elo(team, week)
-            elo_opp = elo.get_elo(opp, week)
-            teams_elo = {elo_team: team,
-                         elo_opp: opp}
-            better_team = max(elo_team, elo_opp)
-            worse_team = min(elo_team, elo_opp)
-            odds = self.weight_calc(better_team, worse_team)
-            odds_percent = odds * 100
-            spread = self.point_spread(better_team, worse_team)
-            print("The", team, "are playing the", opp, "in", week, "and are", home_away)
-            print("The", teams_elo[better_team], "have a", odds_percent,
+    def print_game_details(self, game, team):
+        home_away = self.get_home_away(team, game)
+        opp = elo.get_opponent(team, game)
+        elo_team = elo.get_elo(team, game)
+        elo_opp = elo.get_elo(opp, game)
+        teams_elo = {elo_team: team,
+                     elo_opp: opp}
+        better_team = max(elo_team, elo_opp)
+        worse_team = min(elo_team, elo_opp)
+        odds = self.weight_calc(better_team, worse_team)
+        odds_percent = odds * 100
+        spread = self.point_spread(better_team, worse_team)
+        print("The", team, "are playing the", opp, "in", game, "and are", home_away)
+        print("The", teams_elo[better_team], "have a", odds_percent,
                   "% chance of winning, with a spread of", spread, "\n")
 
     # calculate the brier score for accuracy
@@ -278,77 +264,70 @@ class EloRatings(NflData):
         return (odds - win_loss) ** 2
 
     # predict the scores for the team
-    def get_predicted_score(self, team, week, elo_team=0, elo_opp=0, runs=10000):
+    def get_predicted_score(self, team, game, elo_team=0, elo_opp=0, runs=10000):
         predicted_score = 0
-        opp = elo.get_opponent(team, week)
-        if opp == "Bye":
-            print("The", team, "are on a bye today.")
-        elif opp != "Bye":
-            spread = self.point_spread(elo_team, elo_opp)
-            if spread <= 0:
-                spread = 0
-            else:
-                spread = spread
-            score = np.random.normal(spread, standard_deviation, runs)
-            avg = self.get_average_score(team)
-            predicted_score = avg + score
-            predicted_score = round(np.mean(predicted_score), 2)
+        opp = elo.get_opponent(team, game)
+        spread = self.point_spread(elo_team, elo_opp)
+        if spread <= 0:
+            spread = 0
+        else:
+            spread = spread
+        score = np.random.normal(spread, standard_deviation, runs)
+        avg = self.get_average_score(team)
+        predicted_score = avg + score
+        predicted_score = round(np.mean(predicted_score), 2)
+
         return predicted_score
 
 
-# simulator for each week
+# simulator for each game
 class Simulator(EloRatings):
-    def run_week(self, week):
+    def run_game(self, game):
         teams = data.index
         for team in teams:
-            self.print_game_details(week, team)
+            self.print_game_details(game, team)
 
     # this gets the percent chance of a team winning based on scoring
-    def simulate_games(self, team, week, runs=100000):
-        opp = elo.get_opponent(team, week)
-        if opp == "Bye":
-            print("The", team, "are on a bye today.\n")
-        else:
-            elo_team = elo.get_elo(team, week)
-            elo_opp = elo.get_elo(opp, week)
-            odds = self.weight_calc(elo_team, elo_opp)
-            wins = 0
-            losses = 0
-            for i in range(runs):
-                result = random()
-                if result <= odds:
-                    wins += 1
-                else:
-                    losses += 1
-            chance = (wins / runs) * 100
-            print("Simulating for the", team, "we get a winning chance of", chance, "%")
+    def simulate_games(self, team, game, runs=100000):
+        opp = elo.get_opponent(team, game)
+        elo_team = elo.get_elo(team, game)
+        elo_opp = elo.get_elo(opp, game)
+        odds = self.weight_calc(elo_team, elo_opp)
+        wins = 0
+        losses = 0
+        for i in range(runs):
+            result = random()
+            if result <= odds:
+                wins += 1
+            else:
+                losses += 1
+        chance = (wins / runs) * 100
+        print("Simulating for the", team, "we get a winning chance of", chance, "%")
 
-    # calculate the scores for each game of the week
-    def simulate_week_with_scores(self, week, write=False):
+    # calculate the scores for each game of the game
+    def simulate_game_with_scores(self, game, write=False):
         teams = data.index
         for team in teams:
-            predicted_score = self.get_predicted_score(team, week)
-            print("Predicting the", team, "will score", predicted_score, "points in", week, ".")
+            predicted_score = self.get_predicted_score(team, game)
+            print("Predicting the", team, "will score", predicted_score, "points in", game, ".")
             if write:
-                if predicted_score == "None":
-                    predicted_score = "BYE"
-                self.set_predicted_score(team, week, predicted_score)
+                self.set_predicted_score(team, game, predicted_score)
 
     # run the game and write the predicted results into the sheet
-    def get_game_and_predict_results(self, team, week, write=False, adjustments=False):
+    def get_game_and_predict_results(self, team, game, write=False, adjustments=False):
         # counted_teams = []
         changed_elo_home = 0
         changed_elo_away = 0
         result = [0, 0, 0]
-        home_away = self.get_home_away(team, week)
-        opp = elo.get_opponent(team, week)
-        elo_team = elo.get_elo(team, week)
-        elo_opp = elo.get_elo(opp, week)
+        home_away = self.get_home_away(team, game)
+        opp = elo.get_opponent(team, game)
+        elo_team = elo.get_elo(team, game)
+        elo_opp = elo.get_elo(opp, game)
         if adjustments:
             elo_team = self.adjustments(elo_team, home_away)
             elo_opp = self.adjustments(elo_opp, home_away)
-        predicted_score_team = self.get_predicted_score(team, week, elo_team, elo_opp)
-        predicted_score_opp = self.get_predicted_score(opp, week, elo_opp, elo_team)
+        predicted_score_team = self.get_predicted_score(team, game, elo_team, elo_opp)
+        predicted_score_opp = self.get_predicted_score(opp, game, elo_opp, elo_team)
         # print(predicted_score_team)
         # print(predicted_score_opp)
         if predicted_score_team > predicted_score_opp:
@@ -373,24 +352,24 @@ class Simulator(EloRatings):
         # print(team, opp, elo_team, elo_opp, predicted_score_team, predicted_score_opp,
         #       changed_elo_home, changed_elo_away)
         if write:
-            if week != "Week 17":
-                self.set_elo(team, week, changed_elo_home)
-                self.set_elo(opp, week, changed_elo_away)
-                self.set_predicted_score(team, week, predicted_score_team)
-                self.set_predicted_score(opp, week, predicted_score_opp)
-            if week == "Week 17":
-                self.set_predicted_score(team, week, predicted_score_team)
-                self.set_predicted_score(opp, week, predicted_score_opp)
+            if game != "Game 72":
+                self.set_elo(team, game, changed_elo_home)
+                self.set_elo(opp, game, changed_elo_away)
+                self.set_predicted_score(team, game, predicted_score_team)
+                self.set_predicted_score(opp, game, predicted_score_opp)
+            if game == "Game 72":
+                self.set_predicted_score(team, game, predicted_score_team)
+                self.set_predicted_score(opp, game, predicted_score_opp)
         return result
 
-    # simulate the full week of scores and write to the files
-    def simulate_week_and_write_to_the_data(self, week, adjustments=False, write=False):
+    # simulate the full game of scores and write to the files
+    def simulate_game_and_write_to_the_data(self, game, adjustments=False, write=False):
         teams = data.index
         counted_teams = []
         for team in teams:
-            opp = self.get_opponent(team, week)
+            opp = self.get_opponent(team, game)
             try:
-                result = self.get_game_and_predict_results(team, week, adjustments=adjustments, write=write)
+                result = self.get_game_and_predict_results(team, game, adjustments=adjustments, write=write)
                 if result[0] not in counted_teams and result[1] not in counted_teams:
                     if result[2] == 1:
                         self.set_record(team, 1)
@@ -410,32 +389,31 @@ class Simulator(EloRatings):
                 self.set_average()
             except Exception:
                 # print("Failed for", team, "carrying elo over")
-                self.set_elo(team, week, self.get_elo(team, week))
+                self.set_elo(team, game, self.get_elo(team, game))
 
     def run_season(self, adjustments=False, write=False):
-        weeks = scores.columns
-        for week in weeks:
-            if week != "Average":
-                print(week)
-                self.simulate_week_and_write_to_the_data(week, adjustments=adjustments, write=write)
+        games = scores.columns
+        for game in games:
+            if game != "Average":
+                print(game)
+                self.simulate_game_and_write_to_the_data(game, adjustments=adjustments, write=write)
             else:
-                # print("Skipping column", week)
+                # print("Skipping column", game)
                 continue
 
-    def final_standings(self, records):
-        for x in records:
+    def final_standings(self, records_list):
+        for record in records_list:
             total_score = 0
-            total_score += records[x][0]
-            total_score += (records[x][2] / 2)
-            print(x, total_score)
+            total_score += records_list[record][0]
+            print(record, total_score)
 
 
 # create object
 elo = Simulator()
 # set up global data
-elo.read_and_clean("D:/Elo_Ratings/elo_data.csv")
-elo.read_schedule("D:/Elo_Ratings/schedule.csv")
-elo.read_scores("D:/Elo_Ratings/scores.csv")
+elo.read_and_clean("D:/Elo_Ratings/NBA/elo_ratings.csv")
+elo.read_schedule("D:/Elo_Ratings/NBA/schedule.csv")
+elo.read_scores("D:/Elo_Ratings/NBA/scores.csv")
 elo.set_average()
 # testing code here
 elo.run_season(adjustments=True, write=True)
@@ -444,12 +422,12 @@ elo.run_season(adjustments=True, write=True)
 print(records)
 elo.final_standings(records)
 
-# get scores of a specific week
-# print(elo.get_game_and_predict_results("Rams", "Week 15"))
-# print(elo.get_game_and_predict_results("Chargers", "Week 15"))
+# get scores of a specific game
+# print(elo.get_game_and_predict_results("Rams", "Game 15"))
+# print(elo.get_game_and_predict_results("Chargers", "Game 15"))
 
-# elo_win = elo.get_elo("Ravens", "Week 14")
-# elo_loss = elo.get_elo("Browns", "Week 14")
+# elo_win = elo.get_elo("Ravens", "Game 14")
+# elo_loss = elo.get_elo("Browns", "Game 14")
 # print(elo.change_elo(elo_win, elo_loss, "A", 47, 42))
 
-# elo.simulate_week_and_write_to_the_data("Week 2")
+# elo.simulate_game_and_write_to_the_data("Game 2")
