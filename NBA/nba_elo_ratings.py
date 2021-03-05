@@ -316,7 +316,7 @@ class Simulator(EloRatings):
         # counted_teams = []
         changed_elo_home = 0
         changed_elo_away = 0
-        result = [0, 0, 0]
+        result = [0, 0]
         home_away = self.get_home_away(team, game)
         opp = elo.get_opponent(team, game)
         elo_team = elo.get_elo(team, game)
@@ -326,8 +326,8 @@ class Simulator(EloRatings):
             elo_opp = self.adjustments(elo_opp, home_away)
         predicted_score_team = self.get_predicted_score(team, game, elo_team, elo_opp)
         predicted_score_opp = self.get_predicted_score(opp, game, elo_opp, elo_team)
-        # print(predicted_score_team)
-        # print(predicted_score_opp)
+        print(predicted_score_team)
+        print(predicted_score_opp)
         if predicted_score_team > predicted_score_opp:
             winner = "A"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
@@ -401,18 +401,16 @@ elo = Simulator()
 elo.read_and_clean("D:/Elo_Ratings/NBA/elo_ratings.csv")
 elo.read_schedule("D:/Elo_Ratings/NBA/schedule.csv")
 elo.read_scores("D:/Elo_Ratings/NBA/scores.csv")
-elo.set_average()
+# elo.set_average()
 # testing code here
-elo.run_season(adjustments=True, write=True)
+# elo.run_season(adjustments=True, write=True)
 # elo.write_file(data,"test_elos.csv")
 # elo.write_file(scores,"test_scores.csv")
-print(records)
-elo.final_standings(records)
 
 # get scores of a specific game
-# print(elo.get_game_and_predict_results("Rams", "Game 15"))
-# print(elo.get_game_and_predict_results("Chargers", "Game 15"))
-
+print(elo.get_elo("Warriors", "Game 1"))
+print(elo.get_elo("Nets", "Game 1"))
+print(elo.point_spread(elo.get_elo("Warriors", "Game 1"), elo.get_elo("Nets", "Game 1")))
 # elo_win = elo.get_elo("Ravens", "Game 14")
 # elo_loss = elo.get_elo("Browns", "Game 14")
 # print(elo.change_elo(elo_win, elo_loss, "A", 47, 42))
