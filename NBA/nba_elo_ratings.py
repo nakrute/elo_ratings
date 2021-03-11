@@ -29,12 +29,12 @@ team_abv = {"Hawks": "ATL",
             "Heat": "MIA",
             "Bucks": "MIL",
             "Timberwolves": "MIN",
-            "Pelicans": "NOP",
+            "Pelicans": "NOR",
             "Knicks": "NYK",
             "Thunder": "OKC",
             "Magic": "ORL",
             "76ers": "PHI",
-            "Suns": "PHX",
+            "Suns": "PHO",
             "Trail Blazers": "POR",
             "Kings": "SAC",
             "Spurs": "SAS",
@@ -261,6 +261,18 @@ class EloRatings(NbaData):
     def brier_score(self, odds, win_loss):
         return (odds - win_loss) ** 2
 
+    # give up to a 10% chance random win
+    def random_win(self, elo_high, elo_low):
+        elo_diff = abs(elo_high - elo_low)
+        win_chance = 0
+        if 50 <= elo_diff < 100:
+            win_chance = 10
+        elif 100 <= elo_diff < 200:
+            win_chance = 5
+        elif elo_diff >= 200:
+            win_chance = 1
+        return win_chance
+
     # predict the scores for the team
     def get_predicted_score(self, team, game, elo_team=0, elo_opp=0, runs=10000):
         predicted_score = 0
@@ -326,8 +338,22 @@ class Simulator(EloRatings):
             elo_opp = self.adjustments(elo_opp, home_away)
         predicted_score_team = self.get_predicted_score(team, game, elo_team, elo_opp)
         predicted_score_opp = self.get_predicted_score(opp, game, elo_opp, elo_team)
-        print(predicted_score_team)
-        print(predicted_score_opp)
+        # print(predicted_score_team)
+        # print(predicted_score_opp)
+
+        # get the random chance of a game going the other way
+        rand_win_chance = np.random.randint(1, 100)
+        rand_win_prob = self.random_win(elo_team, elo_opp)
+        if rand_win_chance <= rand_win_prob:
+            if predicted_score_team < predicted_score_opp:
+                temp = predicted_score_team
+                predicted_score_team = predicted_score_opp
+                predicted_score_opp = temp
+            if predicted_score_team > predicted_score_opp:
+                temp = predicted_score_opp
+                predicted_score_opp = predicted_score_team
+                predicted_score_team = temp
+
         if predicted_score_team > predicted_score_opp:
             winner = "A"
             new_elos = self.change_elo(elo_team, elo_opp, winner, predicted_score_team, predicted_score_opp)
@@ -401,16 +427,19 @@ elo = Simulator()
 elo.read_and_clean("D:/Elo_Ratings/NBA/elo_ratings.csv")
 elo.read_schedule("D:/Elo_Ratings/NBA/schedule.csv")
 elo.read_scores("D:/Elo_Ratings/NBA/scores.csv")
-# elo.set_average()
+elo.set_average()
+elo.simulate_game_and_write_to_the_data("Game 1")
 # testing code here
 # elo.run_season(adjustments=True, write=True)
 # elo.write_file(data,"test_elos.csv")
 # elo.write_file(scores,"test_scores.csv")
+print(records)
 
 # get scores of a specific game
-print(elo.get_elo("Warriors", "Game 1"))
-print(elo.get_elo("Nets", "Game 1"))
-print(elo.point_spread(elo.get_elo("Warriors", "Game 1"), elo.get_elo("Nets", "Game 1")))
+# print(elo.get_elo("Warriors", "Game 2"))
+# print(elo.get_elo("Nets", "Game 2"))
+# print(elo.point_spread(elo.get_elo("Warriors", "Game 2"), elo.get_elo("Nets", "Game 2")))
+# print(elo.get_game_and_predict_results("Nets", "Game 2"))
 # elo_win = elo.get_elo("Ravens", "Game 14")
 # elo_loss = elo.get_elo("Browns", "Game 14")
 # print(elo.change_elo(elo_win, elo_loss, "A", 47, 42))
